@@ -1,38 +1,25 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en-us">
   <head>
-    <title>WebGL Demo</title>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="../webgl.css" type="text/css">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | Mafia</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <script src="TemplateData/UnityProgress.js"></script>
+    <script src="Build/UnityLoader.js"></script>
+    <script>
+      var unityInstance = UnityLoader.instantiate("unityContainer", "Build/Releases.json", {onProgress: UnityProgress});
+    </script>
   </head>
-
   <body>
-    <canvas id="glcanvas" width="640" height="480"></canvas>
+    <div class="webgl-content">
+      <div id="unityContainer" style="width: 960px; height: 600px"></div>
+      <div class="footer">
+        <div class="webgl-logo"></div>
+        <div class="fullscreen" onclick="unityInstance.SetFullscreen(1)"></div>
+        <div class="title">Mafia</div>
+      </div>
+    </div>
   </body>
-
-  <script>
-    main();
-
-    //
-    // Start here
-    //
-    function main() {
-      const canvas = document.querySelector('#glcanvas');
-      // Initialize the GL context
-      const gl = canvas.getContext('webgl');
-
-      // If we don't have a GL context, give up now
-      // Only continue if WebGL is available and working
-
-      if (!gl) {
-        alert('Unable to initialize WebGL. Your browser or machine may not support it.');
-        return;
-      }
-
-      // Set clear color to black, fully opaque
-      gl.clearColor(0.0, 0.0, 0.0, 1.0);
-      // Clear the color buffer with specified clear color
-      gl.clear(gl.COLOR_BUFFER_BIT);
-    }
-  </script>
 </html>
