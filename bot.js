@@ -5,10 +5,11 @@ const CHANNEL_ID = 'UscnU30egG9jGkgR';
 const rooms = ["observable-Main", "observable-Mafia", "observable-Doc", "observable-Sheriff", "observable-broadcast"];
 
 var role = 4;
-var GM = {name: "GinWee", color: '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16)};
-var userName =  prompt("Enter your name: ");
+var GM = {name: "GinWeeBot", color: '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16)};
+var userName =  "GinWeeBot";
 
 const PassWord = "Sticky42";
+
 const drone = new ScaleDrone(CHANNEL_ID, {
   data: { // Will be sent out as clientData via events
     name: userName,
@@ -61,8 +62,7 @@ drone.on('open', error => {
     if (error) {
       return console.error(error);
     }
-	if (role == 1)
-		addMessageToListDOM2("You have entered the Mafia Chat", GM, 1);
+	addMessageToListDOM2("You have entered the Mafia Chat", GM, 1);
   });
 
   mafiaRoom.on('members', m => {
@@ -91,7 +91,6 @@ drone.on('open', error => {
     if (error) {
       return console.error(error);
     }
-	if (role == 2)
     addMessageToListDOM2("You have entered the Doctor Chat", GM, 1);
   });
 
@@ -109,8 +108,8 @@ drone.on('open', error => {
   });
 
   docRoom.on('data', (text, member) => {
-    if (member && role == 2) {
-      addMessageToListDOM(text, member, 2);
+    if (member) {
+      addMessageToListDOM("D " + text, member, 2);
     } else {
       // Message is from server
     }
@@ -121,7 +120,6 @@ drone.on('open', error => {
     if (error) {
       return console.error(error);
     }
-		if (role == 3)
     addMessageToListDOM2("You have entered the Sheriff Chat", GM, 1);
   });
 
@@ -139,8 +137,8 @@ drone.on('open', error => {
   });
 
   sheriffRoom.on('data', (text, member) => {
-    if (member && role == 3) {
-      addMessageToListDOM(text, member, 3);
+    if (member) {
+      addMessageToListDOM("S " + text, member, 3);
     } else {
       // Message is from server
     }
@@ -151,23 +149,16 @@ drone.on('open', error => {
     if (error) {
       return console.error(error);
     }
-		addMessageToListDOM2("You are being assigned a role. please wait", GM, 1);
+		addMessageToListDOM2("You are the Bot (BroadCast)", GM, 1);
   });
 
 
   broadCastRoom.on('data', (text, member) => {
     if (member) {
 	  const { name, color } = member.clientData;
-	  if (text.includes(PassWord) && text.includes(userName)){
-		  text = text.replace(PassWord, "");
-		  if( text.includes("index")){
-			  var s = text.split(" ");
-			  role = parseInt(s[s.length - 1])
-			  addMessageToListDOM("My Role idx is " + role, member, 4);
-		  }
-		  
+
 		addMessageToListDOM("B " + text, member, 4);
-	  }
+
     } else {
       // Message is from server
     }
