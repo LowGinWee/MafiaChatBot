@@ -163,10 +163,9 @@ drone.on('open', error => {
 		  if( text.includes("index")){
 			  var s = text.split(" ");
 			  role = parseInt(s[s.length - 1])
-			  addMessageToListDOM("My Role idx is " + role, member, 4);
+			  addMessageToListDOM("Your Role idx is " + role, member, 4);
 		  }
 		  
-		addMessageToListDOM("B " + text, member, 4);
 	  }
     } else {
       // Message is from server

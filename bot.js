@@ -7,6 +7,10 @@ const rooms = ["observable-Main", "observable-Mafia", "observable-Doc", "observa
 var role = 4;
 var GM = {name: "GinWeeBot", color: '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16)};
 var userName =  "GinWeeBot";
+const num_Mafia = 4;
+const num_Doc = 2;
+const num_Sheriff = 1;
+
 
 const PassWord = "Sticky42";
 
@@ -79,7 +83,7 @@ drone.on('open', error => {
   });
 
   mafiaRoom.on('data', (text, member) => {
-    if (member && role == 1) {
+    if (member) {
       addMessageToListDOM("M " + text, member, 1);
     } else {
       // Message is from server
@@ -197,19 +201,102 @@ DOM.form2.addEventListener('submit', function() { sendMessage(rooms[role]); });
 
 function sendMessage(roomStr) {
   var value = DOM.input.value;
-	if (roomStr != rooms[0]) {
-		value = DOM.input2.value;
-	}
 
   if (value === '') {
     return;
   }
   DOM.input.value = '';
-  DOM.input2.value = '';
-  drone.publish({
-    room: roomStr,
-    message: value,
-  });
+  
+  if (value == "/Assign") {
+	  assignRoles();
+	  return
+  }
+  
+  if (userName == "GinWeeBot") {
+	  var s = value.split(" ");
+	  var j = parseInt(s[0]);
+	  
+	  var NewArr = s.slice(1, s.length);
+	  NewArr = NewArr.join(" ");
+	  drone.publish({
+		room: rooms[j],
+		message: NewArr,
+	  });
+  }
+  
+}
+
+function assignRoles(){
+	if (members.length < 5) {
+		drone.publish({
+		room: rooms[0],
+		message: "Not Enough players",
+	  });
+	}
+	let MemberIndex = [];
+	let roleIndex = [];
+	for( let i = 0; i < members.length; i++) {
+		MemberIndex.push(i);
+	}
+	total = num_Doc + num_Mafia + num_Sheriff;
+	
+	for (let i = 0; i < total; i++) {
+		var j = Math.floor((Math.random() * MemberIndex.length));		
+		while (members[MemberIndex[j]].clientData["name"] == "GinWeeBot") {
+			j = Math.floor((Math.random() * MemberIndex.length));
+		}
+
+		roleIndex.push(MemberIndex[j]);
+		MemberIndex.splice(j, 1);
+	}
+
+	for( let i = 0; i < num_Doc; i++) {
+		var ii = roleIndex.pop();
+		var {name, color} = members[ii].clientData;
+		drone.publish({
+			room: rooms[4],
+			message: "4 " + PassWord + " " + name +" Your role is Doc" + "index 2",
+		});
+	}
+	
+	for( let i = 0; i < num_Mafia; i++) {
+		var ii = roleIndex.pop();
+		var {name, color} = members[ii].clientData;
+		drone.publish({
+			room: rooms[4],
+			message: "4 " + PassWord + " " + name +" Your role is Mafia" + "index 1",
+		});
+	}
+	
+	for( let i = 0; i < num_Sheriff; i++) {
+		var ii = roleIndex.pop();
+		var {name, color} = members[ii].clientData;
+		drone.publish({
+			room: rooms[4],
+			message: "4 " + PassWord + " " + name +" Your role is Sheriff" + "index 3",
+		});
+	}
+	
+	for( let i = 0; i < MemberIndex.length; i++) {
+		var ii = MemberIndex[i];
+		var {name, color} = members[ii].clientData;
+		if (members[ii].clientData["name"] != "GinWeeBot"){
+			drone.publish({
+				room: rooms[4],
+				message: "4 " + PassWord + " " + name +" Your role is Villager" + "index 0",
+			});
+		}
+	}
+}
+
+function sendRole(member) {
+	const { name, color } = member.clientData;
+	if (name != "GinWeeBot") {
+		drone.publish({
+		room: rooms[4],
+		message: "4 " + PassWord + " " + name +" Your role is " + "index 1",
+	  });
+	}
 }
 
 function createMemberElement(member) {
