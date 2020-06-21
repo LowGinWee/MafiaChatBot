@@ -5,9 +5,9 @@ const rooms = ["observable-Main", "observable-Mafia", "observable-Doc", "observa
 var role = 4;
 var GM = {name: "GinWeeBot", color: '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16)};
 var userName =  "GinWeeBot";
-const num_Mafia = 5;
-const num_Doc = 2;
-const num_Sheriff = 2;
+var num_Mafia = 5;
+var num_Doc = 2;
+var num_Sheriff = 2;
 
 let MafiaAlive = [];
 let VillagerAlive = [];
@@ -269,6 +269,18 @@ function sendMessage(roomStr) {
   if (value.includes("-reveal")) {
 		var s = value.split(" ");
 		revealPlayer(s[1]);
+  	  return;
+  }
+
+   if (value.includes("-Assign")) {
+		var s = value.split(" ");
+		num_Mafia = s[1];
+		num_Doc = s[2];
+		num_Sheriff = s[3];
+	drone.publish({
+		room: rooms[0],
+		message: "Mafia = " + num_Mafia + " Doc = " + num_Doc + " Sheriff = " + num_Sheriff ,
+	  });
   	  return;
   }
   
