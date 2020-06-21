@@ -11,6 +11,14 @@ const num_Mafia = 4;
 const num_Doc = 2;
 const num_Sheriff = 1;
 
+let MafiaAlive = [];
+let VillagerAlive = [];
+let DocAlive =[];
+let SheriffAlive = [];
+let GoodAlive = [];
+let AllAlive = [];
+let dead = [];
+
 
 const PassWord = "Sticky42";
 
@@ -225,6 +233,34 @@ function sendMessage(roomStr) {
   }
   
 }
+function startGame(){
+	
+}
+
+var ToggleKillPhase = false;
+
+function nightCycle(){
+
+	
+}
+
+function mafiaCycle(){
+	var msg = "";
+	for (let i = 0; i < GoodAlive; i++) {
+		var j = i + 1;
+		msg += j + ". " + GoodAlive[i] + "\n";
+	}
+	var numCanKill = 1;
+	if (MafiaAlive.length > 2) 
+		numCanKill = 2;
+	drone.publish({
+		room: rooms[1],
+	message: "Mafia, Please decide who ("+ numCanKill+") to kill.(2 mins)\nUsage: \"-k\" [index]\n" + msg,
+	});
+	 
+	 ToggleKillPhase = true;
+	 window.setTimeout();
+}
 
 function assignRoles(){
 	if (members.length < 5) {
@@ -232,59 +268,69 @@ function assignRoles(){
 		room: rooms[0],
 		message: "Not Enough players",
 	  });
-	}
-	let MemberIndex = [];
-	let roleIndex = [];
-	for( let i = 0; i < members.length; i++) {
-		MemberIndex.push(i);
-	}
-	total = num_Doc + num_Mafia + num_Sheriff;
-	
-	for (let i = 0; i < total; i++) {
-		var j = Math.floor((Math.random() * MemberIndex.length));		
-		while (members[MemberIndex[j]].clientData["name"] == "GinWeeBot") {
-			j = Math.floor((Math.random() * MemberIndex.length));
+	} else {
+			
+		let MemberIndex = [];
+		let roleIndex = [];
+		for( let i = 0; i < members.length; i++) {
+			MemberIndex.push(i);
+			AllAlive.push(members[i].clientData["name"];
+		}
+		
+		total = num_Doc + num_Mafia + num_Sheriff;
+		
+		for (let i = 0; i < total; i++) {
+			var j = Math.floor((Math.random() * MemberIndex.length));		
+			while (members[MemberIndex[j]].clientData["name"] == "GinWeeBot") {
+				j = Math.floor((Math.random() * MemberIndex.length));
+			}
+			roleIndex.push(MemberIndex[j]);
+			MemberIndex.splice(j, 1);
 		}
 
-		roleIndex.push(MemberIndex[j]);
-		MemberIndex.splice(j, 1);
-	}
-
-	for( let i = 0; i < num_Doc; i++) {
-		var ii = roleIndex.pop();
-		var {name, color} = members[ii].clientData;
-		drone.publish({
-			room: rooms[4],
-			message: "4 " + PassWord + " " + name +" Your role is Doc" + "index 2",
-		});
-	}
-	
-	for( let i = 0; i < num_Mafia; i++) {
-		var ii = roleIndex.pop();
-		var {name, color} = members[ii].clientData;
-		drone.publish({
-			room: rooms[4],
-			message: "4 " + PassWord + " " + name +" Your role is Mafia" + "index 1",
-		});
-	}
-	
-	for( let i = 0; i < num_Sheriff; i++) {
-		var ii = roleIndex.pop();
-		var {name, color} = members[ii].clientData;
-		drone.publish({
-			room: rooms[4],
-			message: "4 " + PassWord + " " + name +" Your role is Sheriff" + "index 3",
-		});
-	}
-	
-	for( let i = 0; i < MemberIndex.length; i++) {
-		var ii = MemberIndex[i];
-		var {name, color} = members[ii].clientData;
-		if (members[ii].clientData["name"] != "GinWeeBot"){
+		for( let i = 0; i < num_Doc; i++) {
+			var ii = roleIndex.pop();
+			var {name, color} = members[ii].clientData;
+			DocAlive.push(name);
+			GoodAlive.push(name);
 			drone.publish({
 				room: rooms[4],
-				message: "4 " + PassWord + " " + name +" Your role is Villager" + "index 0",
+				message: "4 " + PassWord + " " + name +" Your role is Doc" + "index 2",
 			});
+		}
+		
+		for( let i = 0; i < num_Mafia; i++) {
+			var ii = roleIndex.pop();
+			var {name, color} = members[ii].clientData;
+			MafiaAlive.push(name);
+			drone.publish({
+				room: rooms[4],
+				message: "4 " + PassWord + " " + name +" Your role is Mafia" + "index 1",
+			});
+		}
+		
+		for( let i = 0; i < num_Sheriff; i++) {
+			var ii = roleIndex.pop();
+			var {name, color} = members[ii].clientData;
+			SheriffAlive.push(name);
+			GoodAlive.push(name);
+			drone.publish({
+				room: rooms[4],
+				message: "4 " + PassWord + " " + name +" Your role is Sheriff" + "index 3",
+			});
+		}
+		
+		for( let i = 0; i < MemberIndex.length; i++) {
+			var ii = MemberIndex[i];
+			var {name, color} = members[ii].clientData;
+			if (members[ii].clientData["name"] != "GinWeeBot"){
+				VillagerAlive.push(name);
+				GoodAlive.push(name);
+				drone.publish({
+					room: rooms[4],
+					message: "4 " + PassWord + " " + name +" Your role is Villager" + "index 0",
+				});
+			}
 		}
 	}
 }
