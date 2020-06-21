@@ -5,8 +5,16 @@ const CHANNEL_ID = 'UscnU30egG9jGkgR';
 const rooms = ["observable-Main", "observable-Mafia", "observable-Doc", "observable-Sheriff", "observable-broadcast"];
 
 var role = 4;
-var GM = {name: "GinWee", color: '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16)};
-var userName =  prompt("Enter your name: ");
+var GM = {name: "GinWeeBot", color: '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16)};
+var userName = "";
+while (!userName) {
+    userName = prompt("Enter your name(1 word please): ");
+    var s = userName.split(" ");
+    if (s.Length < 1 || s.Length > 1)
+        userName = "";
+}
+
+var isDead = false;
 
 const PassWord = "Sticky42";
 const drone = new ScaleDrone(CHANNEL_ID, {
@@ -79,8 +87,8 @@ drone.on('open', error => {
   });
 
   mafiaRoom.on('data', (text, member) => {
-    if (member && role == 1) {
-      addMessageToListDOM("M " + text, member, 1);
+    if ((member && role == 1) || isDead) {
+      addMessageToListDOM(text, member, 1);
     } else {
       // Message is from server
     }
@@ -109,7 +117,7 @@ drone.on('open', error => {
   });
 
   docRoom.on('data', (text, member) => {
-    if (member && role == 2) {
+    if ((member && role == 2) || isDead) {
       addMessageToListDOM(text, member, 2);
     } else {
       // Message is from server
@@ -139,7 +147,7 @@ drone.on('open', error => {
   });
 
   sheriffRoom.on('data', (text, member) => {
-    if (member && role == 3) {
+    if ((member && role == 3) || isDead) {
       addMessageToListDOM(text, member, 3);
     } else {
       // Message is from server
@@ -157,20 +165,39 @@ drone.on('open', error => {
 
   broadCastRoom.on('data', (text, member) => {
     if (member) {
-	  const { name, color } = member.clientData;
-	  if (text.includes(PassWord) && text.includes(userName)){
-		  text = text.replace(PassWord, "");
-		  if( text.includes("index")){
-			  var s = text.split(" ");
-			  role = parseInt(s[s.length - 1])
-			  addMessageToListDOM("Your Role idx is " + role, member, 4);
-		  }
-		  
-	  }
-    } else {
-      // Message is from server
-    }
-  });
+    const { name, color } = member.clientData;
+        if (text.includes(PassWord) && text.includes(" -" + userName + " ")){
+	        text = text.replace(PassWord, "");
+	        if( text.includes("-role")){
+		        var s = text.split(" ");
+		        role = s[s.length - 1];
+                switch (role){
+                    case "0": 
+                        role = 0;
+                        role_c = "Villager";
+                        break;
+                    case "1": 
+                        role = 1;
+                        role_c = "Mafia";
+                        break;
+                    case "2": 
+                        role = 2;
+                        role_c = "Doctor";
+                        break;
+                    case "3": 
+                        role = 3;
+                        role_c = "Sheriff";
+                        break;
+                }
+		        addMessageToListDOM("Your role is " + role_c, member, 4);
+                isDead = false;
+	        } else if (text.includes("-kill")){
+               addMessageToListDOM("Your are dead! (Gaining access to all chats...)", member, 4); 
+               isDead = true;
+			}
+        }
+    } 
+    });
 });
 
 drone.on('close', event => {

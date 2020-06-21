@@ -1,5 +1,3 @@
-
-
 const CHANNEL_ID = 'UscnU30egG9jGkgR';
 
 const rooms = ["observable-Main", "observable-Mafia", "observable-Doc", "observable-Sheriff", "observable-broadcast"];
@@ -7,9 +5,9 @@ const rooms = ["observable-Main", "observable-Mafia", "observable-Doc", "observa
 var role = 4;
 var GM = {name: "GinWeeBot", color: '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16)};
 var userName =  "GinWeeBot";
-const num_Mafia = 4;
+const num_Mafia = 5;
 const num_Doc = 2;
-const num_Sheriff = 1;
+const num_Sheriff = 2;
 
 let MafiaAlive = [];
 let VillagerAlive = [];
@@ -19,6 +17,13 @@ let GoodAlive = [];
 let AllAlive = [];
 let dead = [];
 
+let toKill = [];
+
+var voteContainer = {};
+
+//key -- name
+//value -- (alive, role, good)
+var players = new Object(); 
 
 const PassWord = "Sticky42";
 
@@ -62,7 +67,16 @@ drone.on('open', error => {
   });
 
   room.on('data', (text, member) => {
-    if (member) {
+	if (member && text.includes("-vote")) {
+		var {name, color} = member.clientData;
+		if (name != "GinWeeBot") {
+			var s = text.split(" ");
+			var vote = s[s.length - 1];
+			voteContainer[name] = vote;
+		}
+		addMessageToListDOM(text, member, 0);
+	}
+    else if (member) {
       addMessageToListDOM(text, member, 0);
     } else {
       // Message is from server
@@ -214,10 +228,48 @@ function sendMessage(roomStr) {
     return;
   }
   DOM.input.value = '';
-  
-  if (value == "/Assign") {
-	  assignRoles();
-	  return
+
+  switch (value) {
+  	case "/Assign":
+		assignRoles();
+		return;
+	case "/Mafia":
+		mafiaCycle();
+		return;
+	case "/Doctor":
+		doctorCycle();
+		return;
+	case "/Sheriff":
+		sheriffCycle();
+		return;
+	case "/Status":
+		publishStatus();
+		return;
+	case "/voteStart":
+		startVote();
+		return;
+	case "/voteEnd":
+		endVote();
+		return;
+
+  }
+
+  if (value.includes("-kill")) {
+		var s = value.split(" ");
+		killPlayer(s[1]);
+  	  return;
+  }
+
+    if (value.includes("-day")) {
+		var s = value.split(" ");
+		insertDay(s[1]);
+  	  return;
+  }
+
+  if (value.includes("-reveal")) {
+		var s = value.split(" ");
+		revealPlayer(s[1]);
+  	  return;
   }
   
   if (userName == "GinWeeBot") {
@@ -231,10 +283,60 @@ function sendMessage(roomStr) {
 		message: NewArr,
 	  });
   }
-  
 }
-function startGame(){
-	
+
+
+function startVote(){
+	voteContainer = {};
+	drone.publish({
+		room: rooms[0],
+		message: "Vote on who to kill! usage: -vote NAME",
+	});
+}
+
+function insertDay(num){
+	drone.publish({
+		room: rooms[0],
+		message: "- - - - - - - - - - Day " + num + " - - - - - - - - - -",
+	});
+}
+
+async function endVote(){
+	var teleScore = {};
+	drone.publish({
+		room: rooms[0],
+		message: "Counting votes!",
+	});
+
+	Object.keys(voteContainer).forEach(function(key) {
+		
+		if (voteContainer[key] in teleScore) {
+			teleScore[voteContainer[key]] += 1;
+		} else {
+			teleScore[voteContainer[key]] = 1;
+			console.log(voteContainer[key]);
+		}
+	});
+
+	var sortable = [];
+	for (var name in teleScore) {
+		console.log(teleScore[name]);
+		console.log(name);
+		sortable.push([name, teleScore[name]]);
+	}
+
+	sortable.sort(function(a, b) {
+		return a[1] - b[1];
+	});
+
+	for( var i in sortable ) {
+		await new Promise(r => setTimeout(r, 200));
+		drone.publish({
+			room: rooms[0],
+			message: sortable[i][0] + " " + sortable[i][1],
+		});
+
+	}
 }
 
 var ToggleKillPhase = false;
@@ -244,37 +346,99 @@ function nightCycle(){
 	
 }
 
-function mafiaCycle(){
-	var msg = "";
-	for (let i = 0; i < GoodAlive; i++) {
-		var j = i + 1;
-		msg += j + ". " + GoodAlive[i] + "\n";
-	}
+
+var KillContainer = [];
+
+async function mafiaCycle(){
+	var msg = [];
+
+	var i = 1;
+
 	var numCanKill = 1;
-	if (MafiaAlive.length > 2) 
+	var numMaf = 0;
+	Object.keys(players).forEach(function(key) {
+		var isAlive = players[key].alive;
+		var isGood = players[key].good;
+		if (isAlive && !isGood)
+			numMaf += 1;
+	});
+
+	if (numMaf > 2) 
 		numCanKill = 2;
+	
 	drone.publish({
 		room: rooms[1],
-	message: "Mafia, Please decide who ("+ numCanKill+") to kill.(2 mins)\nUsage: \"-k\" [index]\n" + msg,
+		message: "Mafia, Please decide who ("+ numCanKill+") to kill.(2 mins)",
 	});
-	 
-	 ToggleKillPhase = true;
-	 window.setTimeout();
+
+	Object.keys(players).forEach(async function(key) {
+		await new Promise(r => setTimeout(r, 200));
+		var name = key;
+		var isAlive = players[key].alive;
+		var isGood = players[key].good;
+		if (isAlive && isGood) {
+			var ii = (name);
+			KillContainer.push(name);
+			drone.publish({
+				room: rooms[1],
+				message: ii,
+			});
+			i += 1;
+		}
+	});
+
 }
 
-function assignRoles(){
-	if (members.length < 5) {
+async function doctorCycle(){
+	drone.publish({
+		room: rooms[2],
+		message: "Doctors, Please decide who to protect.(2 mins)",
+	});
+
+}
+
+async function sheriffCycle(){
+	drone.publish({
+		room: rooms[3],
+		message: "Sheriff, Please decide who to reveal.(2 mins)",
+	});
+
+}
+
+async function killPlayer(name){
+	var msg = "";
+	msg= "4 " + PassWord + " -" + name + " -kill";
+	drone.publish({
+		room: rooms[4],
+		message: msg,
+	});
+
+	players[name].alive = false;
+}
+
+async function revealPlayer(name){
+	var msg = "";
+	msg = players[name].role
+	drone.publish({
+		room: rooms[3],
+		message: name +  " is a " + msg,
+	});
+}
+
+
+async function assignRoles(){
+	if (members.length < num_Doc + num_Mafia + num_Sheriff + 2) {
 		drone.publish({
-		room: rooms[0],
-		message: "Not Enough players",
-	  });
+			room: rooms[0],
+			message: "Not Enough players",
+		 });
 	} else {
 			
 		let MemberIndex = [];
 		let roleIndex = [];
 		for( let i = 0; i < members.length; i++) {
 			MemberIndex.push(i);
-			AllAlive.push(members[i].clientData["name"];
+			AllAlive.push(members[i].clientData["name"]);
 		}
 		
 		total = num_Doc + num_Mafia + num_Sheriff;
@@ -291,59 +455,122 @@ function assignRoles(){
 		for( let i = 0; i < num_Doc; i++) {
 			var ii = roleIndex.pop();
 			var {name, color} = members[ii].clientData;
-			DocAlive.push(name);
-			GoodAlive.push(name);
-			drone.publish({
-				room: rooms[4],
-				message: "4 " + PassWord + " " + name +" Your role is Doc" + "index 2",
-			});
+			var status = {};
+			status.role = "Doctor"
+			status.alive = true;
+			status.good = true;
+			players[name] = status;
 		}
 		
 		for( let i = 0; i < num_Mafia; i++) {
 			var ii = roleIndex.pop();
 			var {name, color} = members[ii].clientData;
-			MafiaAlive.push(name);
-			drone.publish({
-				room: rooms[4],
-				message: "4 " + PassWord + " " + name +" Your role is Mafia" + "index 1",
-			});
+			var status = {};
+			status.role = "Mafia"
+			status.alive = true;
+			status.good = false;
+			players[name] = status;
 		}
 		
 		for( let i = 0; i < num_Sheriff; i++) {
 			var ii = roleIndex.pop();
 			var {name, color} = members[ii].clientData;
-			SheriffAlive.push(name);
-			GoodAlive.push(name);
-			drone.publish({
-				room: rooms[4],
-				message: "4 " + PassWord + " " + name +" Your role is Sheriff" + "index 3",
-			});
+			var status = {};
+			status.role = "Sheriff"
+			status.alive = true;
+			status.good = true;
+			players[name] = status;
 		}
 		
 		for( let i = 0; i < MemberIndex.length; i++) {
 			var ii = MemberIndex[i];
 			var {name, color} = members[ii].clientData;
 			if (members[ii].clientData["name"] != "GinWeeBot"){
-				VillagerAlive.push(name);
-				GoodAlive.push(name);
-				drone.publish({
-					room: rooms[4],
-					message: "4 " + PassWord + " " + name +" Your role is Villager" + "index 0",
-				});
+				var status = {};
+				status.role = "Villager"
+				status.alive = true;
+				status.good = true;
+				players[name] = status;
 			}
 		}
 	}
+
+	var msg = "";
+	Object.keys(players).forEach(async function(key) {
+		var name = key;
+		var role_c = players[key].role;
+		switch(role_c) {
+			case "Villager":
+				msg= "4 " + PassWord + " -" + name + " -role 0";
+				break;
+			case "Mafia":
+				msg= "4 " + PassWord + " -" + name + " -role 1";
+				break;
+			case "Doctor":
+				msg= "4 " + PassWord + " -" + name + " -role 2";
+				break;
+			case "Sheriff":
+				msg= "4 " + PassWord + " -" + name + " -role 3";
+				break;
+		}
+		drone.publish({
+			room: rooms[4],
+			message: msg,
+		});
+		await new Promise(r => setTimeout(r, 200));
+	});
+
+
+	await new Promise(r => setTimeout(r, 1000));
+
+	drone.publish({
+		room: rooms[1],
+		message: "You are now in the Mafia chatroom",
+	});
+
+	
+	drone.publish({
+		room: rooms[2],
+		message: "You are now in the Doctor chatroom",
+	});
+
+	
+	drone.publish({
+		room: rooms[3],
+		message: "You are now in the Sheriff chatroom",
+	});
 }
 
-function sendRole(member) {
-	const { name, color } = member.clientData;
-	if (name != "GinWeeBot") {
+async function publishStatus() {
+	var msg = [];
+	var msg2 = [];
+	Object.keys(players).forEach(function(key) {
+		var name = key;
+		var isAlive = players[key].alive;
+		if (isAlive)
+			msg.push(name + " (Alive)" );
+		else
+			msg2.push(name + " (Dead)" );
+	});
+
+
+	for (var i = 0; i < msg.length; i++) {
+			await new Promise(r => setTimeout(r, 200));
 		drone.publish({
-		room: rooms[4],
-		message: "4 " + PassWord + " " + name +" Your role is " + "index 1",
-	  });
+			room: rooms[0],
+			message: msg[i],
+		});	
+	}
+
+	for (var i = 0; i < msg2.length; i++) {
+			await new Promise(r => setTimeout(r, 200));
+		drone.publish({
+			room: rooms[0],
+			message: msg2[i],
+		});	
 	}
 }
+
 
 function createMemberElement(member) {
   const { name, color } = member.clientData;
@@ -405,6 +632,7 @@ function addMessageToListDOM2(text, member, box) {
   if (box != 0) {
 	  el = DOM.messages2;
   }
+
   const wasTop = el.scrollTop === el.scrollHeight - el.clientHeight;
   el.appendChild(createMessageElement2(text, member));
   if (wasTop) {

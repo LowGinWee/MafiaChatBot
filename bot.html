@@ -18,16 +18,27 @@
     }
 
     .members-count,
-    .members-list,
     .messages {
       border: 1px solid #e4e4e4;
       padding: 15px;
       margin-bottom: 15px;
     }
 
+    .members-list{
+      border: 1px solid #e4e4e4;
+      padding: 15px;
+      margin-bottom: 15px;
+      overflow: auto;
+        padding-top: 10px;
+	  min-height: 200px;
+	  max-height: 200px;
+    }
+
     .messages {
       flex-shrink: 1;
       overflow: auto;
+	  min-height: 200px;
+	  max-height: 200px;
     }
 
     .message {
@@ -63,12 +74,12 @@
   <div class="messages" ID="Chat1"></div>
   <div class="messages"  ID="Chat2"></div>
   <form class="message-form" name ="form1" onsubmit="return false;">
-    <input class="message-form__input" ID = "field1" placeholder="Type a message.." type="text"/>
+    <input class="message-form__input" ID = "field1" placeholder="Type a message.." autocomplete="off" type="text"/>
     <input class="message-form__button" value="Send" type="submit"/>
   </form>
   
    <form class="message-form" name = "form2" onsubmit="return false;">
-    <input class="message-form__input" ID = "field2"  placeholder="Type a message.." type="text"/>
+    <input class="message-form__input" ID = "field2"  placeholder="Type a message.." autocomplete="off" type="text"/>
     <input class="message-form__button" value="Send" type="submit"/>
   </form>
   
