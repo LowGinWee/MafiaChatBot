@@ -251,6 +251,9 @@ function sendMessage(roomStr) {
 	case "/voteEnd":
 		endVote();
 		return;
+	case "/endGame":
+		endGame();
+		return;
 
   }
 
@@ -274,9 +277,9 @@ function sendMessage(roomStr) {
 
    if (value.includes("-Assign")) {
 		var s = value.split(" ");
-		num_Mafia = s[1];
-		num_Doc = s[2];
-		num_Sheriff = s[3];
+		num_Mafia = parseInt(s[1]);
+		num_Doc = parseInt(s[2]);
+		num_Sheriff = parseInt(s[3]);
 	drone.publish({
 		room: rooms[0],
 		message: "Mafia = " + num_Mafia + " Doc = " + num_Doc + " Sheriff = " + num_Sheriff ,
@@ -439,6 +442,11 @@ async function revealPlayer(name){
 
 
 async function assignRoles(){
+		drone.publish({
+			room: rooms[0],
+			message: "- - - - - Assigning Roles... - - - - -",
+		});
+
 	if (members.length < num_Doc + num_Mafia + num_Sheriff + 2) {
 		drone.publish({
 			room: rooms[0],
@@ -551,19 +559,38 @@ async function assignRoles(){
 		room: rooms[3],
 		message: "You are now in the Sheriff chatroom",
 	});
+
+	drone.publish({
+		room: rooms[0],
+		message: "- - - - - Roles Assigned ... - - - - -",
+	});
+
+	publishStatus();
 }
 
 async function publishStatus() {
 	var msg = [];
 	var msg2 = [];
+	var goodcount = 0;
+	var badcount = 0;
 	Object.keys(players).forEach(function(key) {
 		var name = key;
 		var isAlive = players[key].alive;
+		var isGood = players[key].good;
 		if (isAlive)
 			msg.push(name + " (Alive)" );
 		else
 			msg2.push(name + " (Dead)" );
+		if(isAlive && isGood) 
+			goodcount += 1;
+		else if (isAlive && !isGood)
+			badcount += 1;
 	});
+
+		drone.publish({
+			room: rooms[0],
+			message: "- - - - - Getting Player Statuses... - - - - -",
+		});
 
 
 	for (var i = 0; i < msg.length; i++) {
@@ -579,6 +606,55 @@ async function publishStatus() {
 		drone.publish({
 			room: rooms[0],
 			message: msg2[i],
+		});	
+	}
+
+	await new Promise(r => setTimeout(r, 200));
+
+	if (goodcount <= 1) {
+		drone.publish({
+			room: rooms[0],
+			message: "- - - - - Game End! Mafia win! - - - - -",
+		});	
+	}
+
+	else if (badcount <= 0) {
+		drone.publish({
+			room: rooms[0],
+			message: "- - - - - Game End! Villagers win! - - - - -",
+		});	
+	}
+
+	else {
+		drone.publish({
+			room: rooms[0],
+			message: "- - - - - Mafia still alive! Game continues... - - - - -",
+		});
+	}
+}
+
+async function endGame() {
+	var msg = [];
+	Object.keys(players).forEach(function(key) {
+		var name = key;
+		var isAlive = players[key].alive;
+		var isGood = players[key].good;
+		var id = players[key].role;
+		if (isAlive)
+			msg.push(name + " " + id +" (Alive)" );
+		else
+			msg.push(name + " " +id +" (Dead)" );
+	});
+		drone.publish({
+			room: rooms[0],
+			message: "- - - - - Player Identities - - - - -",
+		});	
+
+	for (var i = 0; i < msg.length; i++) {
+			await new Promise(r => setTimeout(r, 200));
+			drone.publish({
+			room: rooms[0],
+			message: msg[i],
 		});	
 	}
 }
