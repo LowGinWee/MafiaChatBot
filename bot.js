@@ -611,7 +611,7 @@ async function publishStatus() {
 
 	await new Promise(r => setTimeout(r, 200));
 
-	if (goodcount <= 1) {
+	if (goodcount <= 0) {
 		drone.publish({
 			room: rooms[0],
 			message: "- - - - - Game End! Mafia win! - - - - -",
