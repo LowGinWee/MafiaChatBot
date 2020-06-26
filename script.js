@@ -12,6 +12,8 @@ while (!userName) {
     var s = userName.split(" ");
     if (s.Length < 1 || s.Length > 1)
         userName = "";
+    else
+	userName = s[0];
 }
 
 var isDead = false;
